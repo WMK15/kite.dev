@@ -26,12 +26,18 @@
 
 # debug
 npm-debug.log*
+pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# drizzle
+drizzle/*.tmp
+
 # env files (can opt-in for committing if needed)
 .env*
+.env.*.local
+!.env.example
 
 # vercel
 .vercel
