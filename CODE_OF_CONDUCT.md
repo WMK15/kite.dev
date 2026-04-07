@@ -32,7 +32,7 @@ This Code of Conduct applies within project spaces and in public spaces when an 
 
 ## Reporting
 
-If you experience or witness unacceptable behaviour, contact the maintainers privately at `community-contact@replace-me.example`.
+If you experience or witness unacceptable behaviour, contact the maintainers privately at `development.wmk@gmail.com`.
 
 This address is a placeholder and should be replaced by maintainers with a real private contact channel.
 

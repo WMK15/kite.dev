@@ -8,7 +8,7 @@ Do not open a public GitHub issue for security vulnerabilities.
 
 Report them privately to:
 
-- `security-contact@replace-me.example`
+- `development.wmk@gmail.com`
 
 This is a placeholder contact and should be replaced by maintainers with a real private reporting channel.
 
