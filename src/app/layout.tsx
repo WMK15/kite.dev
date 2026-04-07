@@ -20,11 +20,11 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(serverEnv.NEXT_PUBLIC_APP_URL),
   title: {
-    default: "Kite",
-    template: "%s | Kite",
+    default: "Kite.dev",
+    template: "%s | Kite.dev",
   },
   description:
-    "Kite keeps Notion tasks and GitHub branches in sync from branch suggestion to pull request linking.",
+    "Kite.dev keeps Notion tasks and GitHub branches in sync from branch suggestion to pull request linking.",
 };
 
 export default function RootLayout({

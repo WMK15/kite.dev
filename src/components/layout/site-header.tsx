@@ -9,7 +9,7 @@ export function SiteHeader(): React.JSX.Element {
           <Link className="flex items-center gap-3" href="/">
             <Image
               src="/brand/wordmark-transparent.svg"
-              alt="Kite"
+              alt="Kite.dev"
               width={132}
               height={36}
               priority

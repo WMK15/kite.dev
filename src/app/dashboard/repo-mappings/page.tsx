@@ -15,7 +15,7 @@ export default async function RepoMappingsPage(): Promise<React.JSX.Element> {
         </h1>
         <p className="text-muted-foreground">
           Each mapping joins one Notion database to one GitHub repository and
-          defines which task properties Kite updates.
+          defines which task properties Kite.dev updates.
         </p>
       </div>
 

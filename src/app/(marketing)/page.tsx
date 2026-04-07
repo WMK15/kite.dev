@@ -21,19 +21,19 @@ const steps = [
     icon: NotepadText,
     title: "Start from Notion",
     description:
-      "Trigger Kite from a task page and generate a deterministic branch name that matches your delivery workflow.",
+      "Trigger Kite.dev from a task page and generate a deterministic branch name that matches your delivery workflow.",
   },
   {
     icon: GitBranch,
     title: "Detect the push",
     description:
-      "Kite listens for GitHub App webhooks, matches the pushed branch, and records the sync event idempotently.",
+      "Kite.dev listens for GitHub App webhooks, matches the pushed branch, and records the sync event idempotently.",
   },
   {
     icon: GitPullRequest,
     title: "Link the pull request",
     description:
-      "When the pull request opens, Kite updates the task again so the branch and review state stay visible in Notion.",
+      "When the pull request opens, Kite.dev updates the task again so the branch and review state stay visible in Notion.",
   },
 ];
 
@@ -48,8 +48,8 @@ export default function MarketingPage(): React.JSX.Element {
               Keep Notion tasks and GitHub branches in step.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-              Kite focuses on one production-ready loop: suggest the branch from
-              Notion, detect the push from GitHub, then update the task
+              Kite.dev focuses on one production-ready loop: suggest the branch
+              from Notion, detect the push from GitHub, then update the task
               automatically.
             </p>
           </div>
@@ -75,8 +75,8 @@ export default function MarketingPage(): React.JSX.Element {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              "Notion button sends a webhook to Kite",
-              "Kite stores a branch intent and writes back the suggested branch",
+              "Notion button sends a webhook to Kite.dev",
+              "Kite.dev stores a branch intent and writes back the suggested branch",
               "GitHub push webhooks update task state when the branch appears remotely",
               "Pull request webhooks link review progress back to Notion",
             ].map((line, index) => (

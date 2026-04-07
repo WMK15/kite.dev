@@ -2,31 +2,54 @@
 
 ![Kite.dev wordmark](./public/brand/wordmark-on-background.png)
 
-Kite.dev is a production-minded bridge between Notion and GitHub.
+**Kite.dev connects Notion tasks to GitHub branch and pull request activity.**
 
-The MVP focuses on one core loop:
+Kite.dev is an open-source bridge for teams that plan work in Notion but ship code in GitHub. It helps keep the task and the code path connected without asking the team to move to a different tracker.
 
-1. A user clicks a Notion button inside a task.
-2. Kite.dev suggests a deterministic branch name.
-3. The user creates and pushes that branch locally.
-4. Kite.dev receives the GitHub App webhook.
-5. Kite.dev updates the Notion task and later links any pull request.
+Kite.dev is currently early-stage. The core loop is in place, but the product and schema will continue to evolve as the workflow is tightened.
+
+## How It Works
+
+1. A user starts work from a task in Notion.
+2. Kite.dev generates a deterministic branch name.
+3. The user creates that branch locally and pushes it.
+4. GitHub App webhooks tell Kite.dev when the branch appears remotely.
+5. Kite.dev updates the Notion task automatically.
+6. When a pull request is opened later, Kite.dev can link it back to the task.
+
+Kite.dev does not create branches on GitHub and does not try to infer local-only work. It is designed around remote events that can be verified and tracked reliably.
+
+## Why Kite.dev Exists
+
+Many teams use Notion for planning, backlog management, and task tracking, while the actual code workflow lives in GitHub. That split is common, but it often leaves the task disconnected from what is happening in the repository.
+
+Kite.dev closes that gap. It gives teams a lightweight link between the task in Notion and the branch or pull request in GitHub, without requiring them to adopt a different project management tool.
+
+## Current Features
+
+- Notion-triggered branch suggestion flow
+- Deterministic branch naming using the project branch format
+- GitHub push detection via GitHub App webhooks
+- Automatic Notion task updates when a tracked branch is pushed
+- Pull request linking foundation through GitHub pull request webhooks
+- Idempotent webhook delivery tracking
+- Structured, sanitised logging with Sentry and PostHog hooks
 
 ## Architecture
 
-- `src/app`: App Router pages and thin route handlers
-- `src/lib/services`: business logic and orchestration
-- `src/schema`: Drizzle schema and relations
-- `src/db`: database client wiring
+Kite.dev is a single-repo Next.js App Router application with a separate services layer for business logic.
+
+- `src/app`: pages and route handlers
+- `src/lib/services`: orchestration and business logic
 - `src/github`: GitHub App and OAuth helpers
 - `src/notion`: Notion client and property helpers
-- `src/security`: webhook verification and sanitisation helpers
-- `src/observability`: structured logging, Sentry, and PostHog
-- `tests`: unit coverage for branch naming, webhook verification, and branch matching
+- `src/db`: database clients and wiring
+- `src/schema`: Drizzle schema and relations
+- `src/security`: verification and sanitisation helpers
+- `src/observability`: logging, Sentry, and PostHog
+- `tests`: unit tests for important pure logic
 
-Route handlers only deal with HTTP transport. Verification, idempotency, branch matching, repository syncing, and Notion updates all live in reusable service functions.
-
-GitHub webhook dispatch covers `push`, `pull_request`, `installation`, and `installation_repositories` so Kite.dev can keep repository records in sync with GitHub App installation state.
+Route handlers are intentionally thin. Verification, idempotency, branch matching, repository syncing, and Notion updates live in reusable services.
 
 ## Stack
 
@@ -40,38 +63,60 @@ GitHub webhook dispatch covers `push`, `pull_request`, `installation`, and `inst
 - Notion public integration
 - Sentry
 - PostHog
+- Vercel-friendly deployment model
 
-## Local Setup
+## Local Development
 
-1. Install dependencies with `pnpm install`.
-2. Copy `.env.example` to `.env.local` and fill every required value.
-3. Generate migrations if you change the schema with `pnpm db:generate`.
-4. Apply migrations with `pnpm db:migrate`.
-5. Start the app with `pnpm dev`.
+### Clone and Install
 
-## Required Environment Variables
+```bash
+git clone https://github.com/WMK15/kite.dev.git
+cd kite
+pnpm install
+```
 
-- `NEXT_PUBLIC_APP_URL`
-- `DATABASE_URL`
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `GITHUB_APP_ID`
-- `GITHUB_APP_NAME`
-- `GITHUB_APP_CLIENT_ID`
-- `GITHUB_APP_CLIENT_SECRET`
-- `GITHUB_APP_PRIVATE_KEY`
-- `GITHUB_WEBHOOK_SECRET`
-- `NOTION_CLIENT_ID`
-- `NOTION_CLIENT_SECRET`
-- `NOTION_REDIRECT_URI`
-- `SENTRY_DSN`
-- `NEXT_PUBLIC_POSTHOG_KEY`
-- `NEXT_PUBLIC_POSTHOG_HOST`
+### Environment Setup
+
+Copy the example file and fill in the required values:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables are listed in `.env.example`. The app validates them at startup and fails fast if they are missing.
+
+### Database Setup
+
+Apply the current Drizzle migrations:
+
+```bash
+pnpm db:migrate
+```
+
+If you change the schema later, generate a new migration with:
+
+```bash
+pnpm db:generate
+```
+
+### Run the App
+
+```bash
+pnpm dev
+```
+
+Useful checks:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
 
 ## GitHub App Setup
 
-Use a GitHub App, not an OAuth App on its own.
+Kite.dev uses a GitHub App, not a standalone OAuth App.
 
 Recommended repository permissions:
 
@@ -79,54 +124,61 @@ Recommended repository permissions:
 - Contents: read-only
 - Pull requests: read-only
 
-Subscribe to these webhook events:
+Subscribe the app to these webhook events:
 
 - `push`
 - `pull_request`
 - `installation`
 - `installation_repositories`
 
-Point the webhook URL at `/api/github/webhooks`.
+Set the webhook URL to:
 
-The current implementation stores installation and repository metadata from webhook payloads so Kite.dev can keep repository mappings aligned with GitHub App state without over-scoping permissions.
+- `/api/github/webhooks`
 
-## Notion Setup
+Kite.dev stores installation and repository metadata from these webhook payloads so repository mappings can stay aligned with GitHub App state.
+
+## Notion Integration Setup
 
 1. Create a public Notion integration.
 2. Set the redirect URI to `/api/auth/notion/callback`.
 3. Share the relevant task database with the integration.
-4. Configure a database mapping in Kite.dev so the app knows which Notion properties map to branch state.
+4. Configure a database mapping in Kite.dev so the right task properties are updated.
 5. Point the Notion button or webhook action at `/api/notion/webhook/start-branch`.
 
 ## Security Notes
 
 - GitHub webhooks use HMAC SHA-256 verification.
-- Notion start-branch requests support a per-mapping shared secret when configured, then fall back to best-effort verification by checking the linked workspace and page.
-- Webhook deliveries are idempotent by delivery ID.
-- Notion start-branch requests are stored in `webhook_deliveries` too, using an explicit delivery header when present and a payload hash fallback otherwise.
-- Structured logs are sanitised to avoid leaking secrets or tokens.
-- Environment validation fails fast at startup.
+- Notion start-branch requests support a per-mapping shared secret when configured.
+- Notion delivery tracking uses an explicit delivery header when available, with a payload hash fallback for idempotency.
+- Structured logs are sanitised and must not contain secrets or tokens.
 
-Further hardening that is intentionally deferred:
+Further hardening is still to come in a few areas:
 
-- encrypting provider access tokens at rest with managed key infrastructure
+- encryption at rest for provider tokens
 - authenticated dashboard access and role-based permissions
-- replay-window enforcement for Notion-originating calls beyond per-mapping secrets
-- full OAuth state management and anti-CSRF initiation flows for the integration connect UI
+- fuller OAuth state and anti-CSRF initiation flows
 
-## Development Commands
+## Open Source
 
-- `pnpm dev`
-- `pnpm lint`
-- `pnpm typecheck`
-- `pnpm test`
-- `pnpm db:generate`
-- `pnpm db:migrate`
+Kite.dev is released under the MIT licence.
 
-## Deployment
+Project and community docs:
 
-The app is designed for Vercel-compatible deployment and expects Node runtime route handlers for all integration endpoints.
+- `LICENSE`
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+- `SECURITY.md`
 
-## Supabase Notes
+If you plan to contribute, start with `CONTRIBUTING.md` for project structure, engineering standards, and pull request expectations.
 
-The project uses Supabase Postgres as the database and includes server/admin client helpers under `src/db/supabase` for future authenticated dashboard work without mixing transport logic into route handlers.
+## Project Status
+
+Kite.dev is still early-stage.
+
+- the core Notion to branch to webhook loop is the current focus
+- APIs, schema details, and setup ergonomics may change as the product matures
+- feedback and contributions are useful, especially when they stay close to the current product direction
+
+## Author
+
+Kite.dev was created by [@wmk.universe](https://instagram.com/wmk.universe) and [W-15 Interactive](https://w15interactive.com), a story-driven digital experiences company.

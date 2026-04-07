@@ -11,7 +11,7 @@ export default function GlobalError(): React.JSX.Element {
             Global application error
           </p>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Kite could not render this page.
+            Kite.dev could not render this page.
           </h1>
           <p className="text-muted-foreground">
             Internal details are intentionally hidden. Refresh the page or

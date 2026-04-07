@@ -24,7 +24,7 @@ export default function ErrorPage({
         Something went wrong
       </p>
       <h1 className="text-4xl font-semibold tracking-tight">
-        Kite hit an unexpected problem.
+        Kite.dev hit an unexpected problem.
       </h1>
       <p className="max-w-2xl text-base leading-7 text-muted-foreground">
         The error details have been hidden from the interface. Try the request
