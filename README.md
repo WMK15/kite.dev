@@ -135,7 +135,16 @@ Set the webhook URL to:
 
 - `/api/github/webhooks`
 
+Set the callback URL to:
+
+- `/api/auth/github/callback`
+
 Kite.dev stores installation and repository metadata from these webhook payloads so repository mappings can stay aligned with GitHub App state.
+
+For the MVP, the two routes have different jobs:
+
+- `/api/github/webhooks`: receives signed push, pull request, and installation events from GitHub
+- `/api/auth/github/callback`: handles browser redirects after GitHub App installation or setup
 
 ## Notion Integration Setup
 

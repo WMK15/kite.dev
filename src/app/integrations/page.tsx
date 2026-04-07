@@ -14,14 +14,12 @@ import {
 import { getIntegrationStatus } from "@/lib/services/dashboard";
 import {
   getGitHubAppInstallationUrl,
-  getGitHubUserAuthorisationUrl,
   getNotionAuthorisationUrl,
 } from "@/lib/services/integration-links";
 
 export default async function IntegrationsPage(): Promise<React.JSX.Element> {
   const integrations = await getIntegrationStatus();
   const notionAuthorisationUrl = getNotionAuthorisationUrl();
-  const githubUserAuthorisationUrl = getGitHubUserAuthorisationUrl();
   const githubInstallationUrl = getGitHubAppInstallationUrl();
 
   return (
@@ -127,10 +125,11 @@ export default async function IntegrationsPage(): Promise<React.JSX.Element> {
                 <p>Idempotent delivery handling</p>
               </div>
             </div>
+            <div className="rounded-2xl bg-muted p-4">
+              <p>Callback URL: `/api/auth/github/callback`</p>
+              <p>Webhook endpoint: `/api/github/webhooks`</p>
+            </div>
             <div className="flex flex-wrap gap-3">
-              <Button asChild variant="outline">
-                <a href={githubUserAuthorisationUrl}>Connect GitHub account</a>
-              </Button>
               <Button asChild>
                 <a href={githubInstallationUrl}>Install GitHub App</a>
               </Button>

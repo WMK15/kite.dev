@@ -25,6 +25,7 @@ This version has breaking changes. APIs, conventions, and file structure may dif
 - Validate environment variables with Zod and fail fast.
 - Verify webhooks before processing them.
 - Preserve idempotency for external event handling.
+- Keep `/api/github/webhooks` and `/api/auth/github/callback` distinct. The webhook route is for signed GitHub event delivery. The callback route is for browser redirects after install or setup.
 
 # Documentation Rules
 
