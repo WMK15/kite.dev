@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { serverEnv } from "@/env/server";
 import { logger } from "@/observability/logger";
 import { posthogServer } from "@/observability/posthog";
@@ -90,6 +90,7 @@ export async function handleGitHubWebhook(input: {
   headers: Headers;
 }): Promise<WebhookProcessingResult> {
   let deliveryRowId: string | null = null;
+  const db = getDb();
 
   try {
     const verified = verifyGitHubWebhookRequest({
@@ -184,6 +185,7 @@ export async function handlePushEvent(
   payload: PushPayload,
   webhookDeliveryId: string,
 ): Promise<void> {
+  const db = getDb();
   const branchName = payload.ref ? extractBranchFromRef(payload.ref) : null;
   const repository = payload.repository;
 
@@ -322,6 +324,7 @@ export async function handlePullRequestEvent(
   payload: PullRequestPayload,
   webhookDeliveryId: string,
 ): Promise<void> {
+  const db = getDb();
   const repository = payload.repository;
   const pullRequest = payload.pull_request;
   const branchName = pullRequest?.head?.ref ?? null;
@@ -500,6 +503,7 @@ export async function handleInstallationEvent(
   payload: InstallationEventPayload,
   webhookDeliveryId: string,
 ): Promise<void> {
+  const db = getDb();
   if (!payload.installation) {
     await recordSyncEvent({
       webhookDeliveryId,
@@ -568,6 +572,7 @@ export async function handleInstallationRepositoriesEvent(
   payload: InstallationRepositoriesPayload,
   webhookDeliveryId: string,
 ): Promise<void> {
+  const db = getDb();
   if (!payload.installation) {
     await recordSyncEvent({
       webhookDeliveryId,
@@ -645,6 +650,7 @@ async function markWebhookDelivery(
   status: "processed" | "ignored",
   responseStatus: number,
 ): Promise<void> {
+  const db = getDb();
   await db
     .update(webhookDeliveries)
     .set({
@@ -672,6 +678,7 @@ async function recordSyncEvent(input: {
   message: string;
   context: Record<string, unknown>;
 }): Promise<void> {
+  const db = getDb();
   await db.insert(syncEvents).values({
     webhookDeliveryId: input.webhookDeliveryId,
     repositoryId: input.repositoryId,
@@ -687,6 +694,7 @@ async function recordSyncEvent(input: {
 }
 
 async function upsertInstallationRecord(input: InstallationWebhookPayload) {
+  const db = getDb();
   const [installation] = await db
     .insert(githubInstallations)
     .values({
@@ -720,6 +728,7 @@ async function upsertRepositoryRecord(input: {
   githubInstallationId: string;
   repository: RepositoryWebhookPayload;
 }) {
+  const db = getDb();
   const repositoryFullName = normaliseRepositoryFullName(
     input.repository.owner?.login ??
       input.repository.full_name.split("/")[0] ??

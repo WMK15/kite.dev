@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { logger } from "@/observability/logger";
 import { posthogServer } from "@/observability/posthog";
 import { captureException } from "@/observability/sentry";
@@ -36,6 +36,7 @@ export async function startBranchIntent(input: {
   deliveryId: string | null;
 }): Promise<WebhookProcessingResult> {
   let webhookDeliveryId: string | null = null;
+  const db = getDb();
 
   try {
     const parsedPayload = startBranchIntentInputSchema.parse(
@@ -268,6 +269,7 @@ async function recordBranchIntentLifecycle(input: {
   notionPageId: string;
   message: string;
 }): Promise<void> {
+  const db = getDb();
   await db.insert(syncEvents).values({
     webhookDeliveryId: input.webhookDeliveryId,
     repositoryId: input.repositoryId,
@@ -304,6 +306,7 @@ async function markNotionDelivery(
   responseStatus: number,
   errorCode?: string,
 ): Promise<void> {
+  const db = getDb();
   if (!webhookDeliveryId) {
     return;
   }

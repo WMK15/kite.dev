@@ -13,7 +13,7 @@ export function SiteHeader(): React.JSX.Element {
               width={132}
               height={36}
               priority
-              className="h-9 w-auto"
+              style={{ width: "auto", height: "36px" }}
             />
           </Link>
           <p className="hidden text-sm text-muted-foreground md:block">

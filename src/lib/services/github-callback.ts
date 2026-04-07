@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { fetchInstallation } from "@/github/app";
 import { logger } from "@/observability/logger";
 import { captureException } from "@/observability/sentry";
@@ -7,6 +7,7 @@ import { auditEvents, githubInstallations } from "@/schema";
 export async function handleGitHubCallback(requestUrl: string): Promise<{
   redirectPath: string;
 }> {
+  const db = getDb();
   const url = new URL(requestUrl);
   const installationIdParam = url.searchParams.get("installation_id");
   const setupAction = url.searchParams.get("setup_action") ?? "install";

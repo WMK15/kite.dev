@@ -1,6 +1,6 @@
 import { count, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
+import { getDb } from "@/db";
 import {
   branchIntents,
   databaseMappings,
@@ -11,6 +11,7 @@ import {
 import type { DashboardSnapshot, IntegrationStatus } from "@/types/domain";
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  const db = getDb();
   const [
     repositoryCountRow,
     mappingCountRow,
@@ -58,6 +59,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 }
 
 export async function getIntegrationStatus(): Promise<IntegrationStatus> {
+  const db = getDb();
   const [workspaceRows, installationRows] = await Promise.all([
     db.query.notionWorkspaces.findMany({
       orderBy: (table, { desc: byDesc }) => [byDesc(table.updatedAt)],
@@ -74,6 +76,7 @@ export async function getIntegrationStatus(): Promise<IntegrationStatus> {
 }
 
 export async function getRepositoryMappings() {
+  const db = getDb();
   return db.query.databaseMappings.findMany({
     orderBy: (table, { desc: byDesc }) => [byDesc(table.updatedAt)],
     with: {
@@ -84,6 +87,7 @@ export async function getRepositoryMappings() {
 }
 
 export async function getRecentSyncLog() {
+  const db = getDb();
   return db.query.syncEvents.findMany({
     orderBy: (table, { desc: byDesc }) => [byDesc(table.occurredAt)],
     limit: 20,

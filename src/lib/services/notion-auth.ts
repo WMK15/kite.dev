@@ -1,9 +1,10 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { serverEnv } from "@/env/server";
 import { exchangeNotionCode } from "@/notion/client";
 import { auditEvents, notionWorkspaces, users } from "@/schema";
 
 export async function completeNotionAuth(code: string): Promise<string> {
+  const db = getDb();
   const payload = await exchangeNotionCode(
     code,
     serverEnv.NOTION_REDIRECT_URI,
