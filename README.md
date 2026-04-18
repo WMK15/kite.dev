@@ -1,6 +1,6 @@
 # Kite.dev
 
-![Kite.dev wordmark](./public/brand/wordmark-on-background.png)
+![Kite.dev logo](./public/brand/wordmark-on-background.png)
 
 **Kite.dev connects Notion tasks to GitHub branch and pull request activity.**
 
