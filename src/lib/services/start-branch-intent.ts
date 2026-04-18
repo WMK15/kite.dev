@@ -22,13 +22,194 @@ import { generateBranchName } from "@/utils/branch-name";
 
 import { updateNotionTask } from "./update-notion-task";
 
-const startBranchIntentInputSchema = z.object({
+/**
+ * Internal normalised shape after extracting IDs from various payload formats.
+ */
+const normalisedInputSchema = z.object({
   pageId: z.string().min(1),
   databaseId: z.string().min(1),
   branchType: z
     .enum(["feat", "fix", "chore", "docs", "refactor", "test"])
     .optional(),
 });
+
+type NormalisedInput = z.infer<typeof normalisedInputSchema>;
+
+/**
+ * Extract pageId and databaseId from various Notion webhook payload shapes.
+ *
+ * Supported formats:
+ * 1. Direct: { pageId, databaseId, branchType? }
+ * 2. Notion page object: { id, parent: { database_id } }
+ * 3. Nested data: { data: { id, parent: { database_id } } }
+ * 4. Nested page: { page: { id, parent: { database_id } } }
+ * 5. With source info: { source: { database_id }, data: { id } }
+ */
+function normalisePayload(raw: unknown): NormalisedInput | null {
+  if (typeof raw !== "object" || raw === null) {
+    return null;
+  }
+
+  const payload = raw as Record<string, unknown>;
+
+  // Format 1: Direct shape { pageId, databaseId }
+  if (
+    typeof payload["pageId"] === "string" &&
+    typeof payload["databaseId"] === "string"
+  ) {
+    return {
+      pageId: payload["pageId"],
+      databaseId: payload["databaseId"],
+      branchType: extractBranchType(payload["branchType"]),
+    };
+  }
+
+  // Format 2: Notion page object { id, parent: { type: "database_id", database_id } }
+  const pageId = extractPageId(payload);
+  const databaseId = extractDatabaseId(payload);
+
+  if (pageId && databaseId) {
+    return {
+      pageId,
+      databaseId,
+      branchType: extractBranchType(payload["branchType"]),
+    };
+  }
+
+  // Format 3: Nested under "data" key
+  if (typeof payload["data"] === "object" && payload["data"] !== null) {
+    const data = payload["data"] as Record<string, unknown>;
+    const nestedPageId = extractPageId(data);
+    const nestedDatabaseId =
+      extractDatabaseId(data) ?? extractDatabaseId(payload);
+
+    if (nestedPageId && nestedDatabaseId) {
+      return {
+        pageId: nestedPageId,
+        databaseId: nestedDatabaseId,
+        branchType: extractBranchType(payload["branchType"]),
+      };
+    }
+  }
+
+  // Format 4: Nested under "page" key
+  if (typeof payload["page"] === "object" && payload["page"] !== null) {
+    const page = payload["page"] as Record<string, unknown>;
+    const nestedPageId = extractPageId(page);
+    const nestedDatabaseId =
+      extractDatabaseId(page) ?? extractDatabaseId(payload);
+
+    if (nestedPageId && nestedDatabaseId) {
+      return {
+        pageId: nestedPageId,
+        databaseId: nestedDatabaseId,
+        branchType: extractBranchType(payload["branchType"]),
+      };
+    }
+  }
+
+  // Format 5: Source contains database_id
+  if (typeof payload["source"] === "object" && payload["source"] !== null) {
+    const source = payload["source"] as Record<string, unknown>;
+    const sourceDatabaseId =
+      typeof source["database_id"] === "string"
+        ? source["database_id"]
+        : undefined;
+    const dataPageId =
+      typeof payload["data"] === "object" && payload["data"] !== null
+        ? extractPageId(payload["data"] as Record<string, unknown>)
+        : undefined;
+
+    if (dataPageId && sourceDatabaseId) {
+      return {
+        pageId: dataPageId,
+        databaseId: sourceDatabaseId,
+        branchType: extractBranchType(payload["branchType"]),
+      };
+    }
+  }
+
+  return null;
+}
+
+function extractPageId(obj: Record<string, unknown>): string | undefined {
+  // Direct "id" field
+  if (typeof obj["id"] === "string" && obj["id"].length > 0) {
+    return obj["id"];
+  }
+  // Nested "page_id" field
+  if (typeof obj["page_id"] === "string" && obj["page_id"].length > 0) {
+    return obj["page_id"];
+  }
+  return undefined;
+}
+
+function extractDatabaseId(obj: Record<string, unknown>): string | undefined {
+  // Direct "database_id" field
+  if (typeof obj["database_id"] === "string" && obj["database_id"].length > 0) {
+    return obj["database_id"];
+  }
+
+  // Direct "data_source_id" field (newer Notion API terminology)
+  if (
+    typeof obj["data_source_id"] === "string" &&
+    obj["data_source_id"].length > 0
+  ) {
+    return obj["data_source_id"];
+  }
+
+  // Nested in "parent" object
+  if (typeof obj["parent"] === "object" && obj["parent"] !== null) {
+    const parent = obj["parent"] as Record<string, unknown>;
+    if (
+      typeof parent["database_id"] === "string" &&
+      parent["database_id"].length > 0
+    ) {
+      return parent["database_id"];
+    }
+    // Also check data_source_id in parent
+    if (
+      typeof parent["data_source_id"] === "string" &&
+      parent["data_source_id"].length > 0
+    ) {
+      return parent["data_source_id"];
+    }
+  }
+
+  return undefined;
+}
+
+function extractBranchType(
+  value: unknown,
+): "feat" | "fix" | "chore" | "docs" | "refactor" | "test" | undefined {
+  const validTypes = ["feat", "fix", "chore", "docs", "refactor", "test"];
+  if (typeof value === "string" && validTypes.includes(value)) {
+    return value as "feat" | "fix" | "chore" | "docs" | "refactor" | "test";
+  }
+  return undefined;
+}
+
+/**
+ * Get a sanitised summary of payload shape for debugging.
+ * Does not include values, only structure.
+ */
+function describePayloadShape(obj: unknown, depth = 0): string {
+  if (depth > 3) return "...";
+  if (obj === null) return "null";
+  if (typeof obj !== "object") return typeof obj;
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return "[]";
+    return `[${describePayloadShape(obj[0], depth + 1)}]`;
+  }
+
+  const keys = Object.keys(obj as Record<string, unknown>).slice(0, 10);
+  const entries = keys.map((k) => {
+    const value = (obj as Record<string, unknown>)[k];
+    return `${k}: ${describePayloadShape(value, depth + 1)}`;
+  });
+
+  return `{ ${entries.join(", ")} }`;
+}
 
 export async function startBranchIntent(input: {
   payload: string;
@@ -39,9 +220,78 @@ export async function startBranchIntent(input: {
   const db = getDb();
 
   try {
-    const parsedPayload = startBranchIntentInputSchema.parse(
-      JSON.parse(input.payload) as unknown,
-    );
+    // Parse raw JSON
+    let rawPayload: unknown;
+    try {
+      rawPayload = JSON.parse(input.payload) as unknown;
+    } catch {
+      logger.warn("Invalid JSON in start-branch webhook payload");
+      return {
+        statusCode: 400,
+        body: { error: "Invalid JSON payload" },
+      };
+    }
+
+    // Log payload shape for debugging (no sensitive values)
+    logger.info("Received start-branch webhook", {
+      payloadShape: describePayloadShape(rawPayload),
+      topLevelKeys:
+        typeof rawPayload === "object" && rawPayload !== null
+          ? Object.keys(rawPayload).slice(0, 15)
+          : [],
+    });
+
+    // Normalise into internal shape
+    const normalised = normalisePayload(rawPayload);
+
+    if (!normalised) {
+      const topKeys =
+        typeof rawPayload === "object" && rawPayload !== null
+          ? Object.keys(rawPayload).slice(0, 10)
+          : [];
+
+      logger.warn("Could not extract pageId/databaseId from webhook payload", {
+        observedKeys: topKeys,
+        payloadShape: describePayloadShape(rawPayload),
+      });
+
+      return {
+        statusCode: 400,
+        body: {
+          error: "Could not extract pageId and databaseId from payload",
+          hint: "Expected either { pageId, databaseId } or a Notion page object with { id, parent: { database_id } }",
+          observedKeys: topKeys,
+        },
+      };
+    }
+
+    // Validate normalised shape
+    const parseResult = normalisedInputSchema.safeParse(normalised);
+    if (!parseResult.success) {
+      logger.warn("Normalised payload failed validation", {
+        issues: parseResult.error.issues,
+      });
+      return {
+        statusCode: 400,
+        body: {
+          error: "Invalid payload after normalisation",
+          issues: parseResult.error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          })),
+        },
+      };
+    }
+
+    const parsedPayload = parseResult.data;
+
+    // Log extracted IDs for debugging
+    logger.info("Extracted IDs from webhook payload", {
+      pageId: parsedPayload.pageId,
+      databaseId: parsedPayload.databaseId,
+      branchType: parsedPayload.branchType ?? "default",
+    });
+
     const payloadHash = hashWebhookPayload(input.payload);
     const notionDeliveryId = input.deliveryId ?? payloadHash;
 
@@ -72,7 +322,10 @@ export async function startBranchIntent(input: {
 
     const mappingRecord = await db.query.databaseMappings.findFirst({
       where: and(
-        eq(databaseMappings.notionDatabaseId, parsedPayload.databaseId),
+        eq(
+          databaseMappings.notionDatabaseId,
+          parsedPayload.databaseId.replace(/-/g, ""),
+        ),
         eq(databaseMappings.active, true),
       ),
       with: {
@@ -82,6 +335,11 @@ export async function startBranchIntent(input: {
     });
 
     if (!mappingRecord) {
+      logger.warn("No database mapping found for Notion database", {
+        databaseId: parsedPayload.databaseId,
+        pageId: parsedPayload.pageId,
+      });
+
       await markNotionDelivery(
         webhookDeliveryId,
         "ignored",
@@ -90,7 +348,11 @@ export async function startBranchIntent(input: {
       );
       return {
         statusCode: 404,
-        body: { error: "Database mapping not found" },
+        body: {
+          error: "Database mapping not found",
+          databaseId: parsedPayload.databaseId,
+          hint: "Ensure this Notion database is connected to a repository in Kite",
+        },
       };
     }
 
@@ -103,9 +365,19 @@ export async function startBranchIntent(input: {
       ({ createNotionClient }) =>
         createNotionClient(mappingRecord.notionWorkspace.accessToken),
     );
-    const page = await notion.pages.retrieve({ page_id: parsedPayload.pageId });
 
-    if (!("parent" in page) || page.parent.type !== "database_id") {
+    logger.info("Fetching Notion page", { pageId: parsedPayload.pageId });
+    const page = await notion.pages.retrieve({ page_id: parsedPayload.pageId });
+    logger.info("Fetched Notion page", {
+      hasParent: "parent" in page,
+      parentType: "parent" in page ? page.parent.type : null,
+    });
+
+    if (
+      !("parent" in page) ||
+      (page.parent.type !== "database_id" &&
+        page.parent.type !== "data_source_id")
+    ) {
       await markNotionDelivery(
         webhookDeliveryId,
         "ignored",
@@ -118,7 +390,23 @@ export async function startBranchIntent(input: {
       };
     }
 
-    if (page.parent.database_id !== mappingRecord.notionDatabaseId) {
+    // Get the database ID from parent - could be database_id or data_source_id depending on API version
+    const parentDatabaseId =
+      page.parent.type === "database_id"
+        ? page.parent.database_id
+        : (page.parent as { data_source_id: string }).data_source_id;
+
+    // Normalize database IDs for comparison (remove dashes)
+    const pageParentDbId = parentDatabaseId.replace(/-/g, "");
+    const mappedDbId = mappingRecord.notionDatabaseId.replace(/-/g, "");
+
+    logger.info("Comparing database IDs", {
+      pageParentDbId,
+      mappedDbId,
+      match: pageParentDbId === mappedDbId,
+    });
+
+    if (pageParentDbId !== mappedDbId) {
       await markNotionDelivery(
         webhookDeliveryId,
         "ignored",
@@ -244,7 +532,10 @@ export async function startBranchIntent(input: {
     };
   } catch (error) {
     captureException(error, { service: "startBranchIntent" });
-    logger.error("Failed to start branch intent", error);
+    logger.error("Failed to start branch intent", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     if (webhookDeliveryId) {
       await markNotionDelivery(

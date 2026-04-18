@@ -189,6 +189,7 @@ export const databaseMappings = pgTable(
       .references(() => repositories.id, { onDelete: "cascade" })
       .notNull(),
     notionDatabaseId: text("notion_database_id").notNull().unique(),
+    notionDatabaseName: text("notion_database_name").notNull(),
     titleProperty: text("title_property").notNull(),
     taskIdProperty: text("task_id_property").notNull(),
     suggestedBranchProperty: text("suggested_branch_property").notNull(),

@@ -1,0 +1,1 @@
+ALTER TABLE "database_mappings" ADD COLUMN "notion_database_name" text NOT NULL DEFAULT 'Untitled';

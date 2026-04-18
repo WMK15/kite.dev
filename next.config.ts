@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
   serverExternalPackages: ["pg"],
+  allowedDevOrigins: ["mitered-alaysia-soapily.ngrok-free.dev"],
 };
 
 export default withSentryConfig(nextConfig, {

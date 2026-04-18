@@ -17,6 +17,10 @@ import {
   getNotionAuthorisationUrl,
 } from "@/lib/services/integration-links";
 
+import { DeleteInstallationButton } from "./delete-installation-button";
+import { DeleteWorkspaceButton } from "./delete-workspace-button";
+import { SyncRepositoriesButton } from "./sync-repositories-button";
+
 export default async function IntegrationsPage(): Promise<React.JSX.Element> {
   const integrations = await getIntegrationStatus();
   const notionAuthorisationUrl = getNotionAuthorisationUrl();
@@ -61,10 +65,18 @@ export default async function IntegrationsPage(): Promise<React.JSX.Element> {
                 key={workspace.id}
                 className="rounded-2xl border border-border/70 p-4"
               >
-                <p className="font-medium text-foreground">
-                  {workspace.workspaceName}
-                </p>
-                <p>{workspace.notionWorkspaceId}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {workspace.workspaceName}
+                    </p>
+                    <p>{workspace.notionWorkspaceId}</p>
+                  </div>
+                  <DeleteWorkspaceButton
+                    workspaceId={workspace.id}
+                    workspaceName={workspace.workspaceName}
+                  />
+                </div>
               </div>
             ))}
             <div className="rounded-2xl bg-muted p-4">
@@ -103,12 +115,21 @@ export default async function IntegrationsPage(): Promise<React.JSX.Element> {
             {integrations.githubInstallations.map((installation) => (
               <div
                 key={installation.id}
-                className="rounded-2xl border border-border/70 p-4"
+                className="space-y-3 rounded-2xl border border-border/70 p-4"
               >
-                <p className="font-medium text-foreground">
-                  {installation.accountLogin}
-                </p>
-                <p>Installation ID: {installation.githubInstallationId}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {installation.accountLogin}
+                    </p>
+                    <p>Installation ID: {installation.githubInstallationId}</p>
+                  </div>
+                  <DeleteInstallationButton
+                    installationId={installation.id}
+                    accountLogin={installation.accountLogin}
+                  />
+                </div>
+                <SyncRepositoriesButton installationId={installation.id} />
               </div>
             ))}
             <div className="grid gap-3 md:grid-cols-3">

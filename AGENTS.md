@@ -10,6 +10,8 @@ This version has breaking changes. APIs, conventions, and file structure may dif
 
 - Use TypeScript everywhere.
 - Use `pnpm` for dependency and script execution.
+- Use shadcn/ui for UI components: `pnpm dlx shadcn@latest add <component>`. Do not create UI components manually.
+- Add `cursor-pointer` to interactive elements (buttons, select triggers, clickable items).
 - Keep route handlers thin and move business logic into `src/lib/services`.
 - Keep GitHub integration helpers in `src/github`.
 - Keep Notion integration helpers in `src/notion`.
